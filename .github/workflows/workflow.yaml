@@ -1,0 +1,53 @@
+on: 
+  push
+
+name: R-CMD
+
+jobs:
+  R-CMD:
+    if: (github.actor == 'henry090')
+    runs-on: ${{ matrix.config.os }}
+
+    name: ${{ matrix.config.os }} 
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - { os: macOS-latest }
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: r-lib/actions/setup-r@master
+
+      - uses: r-lib/actions/setup-pandoc@master
+
+      - name: Install dependencies
+        run: |
+          Rscript -e "install.packages(c('tidymodels','modeltime','rmarkdown','timetk','lubridate','flexdashboard','tidyverse'))"
+
+          
+      - name: Render Rmd files from _posts
+        run: |
+          Rscript rscript.R
+
+      - name: Commit files  
+        run: |
+          git config --global user.email "turqut.a.314@gmail.com"
+          git config --global user.name ${{ github.actor }}
+          git add ./docs
+          git commit -m "updated site"
+          
+      - name: Push changes  
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}          
+          
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          
+

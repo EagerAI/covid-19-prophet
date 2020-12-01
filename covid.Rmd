@@ -1,0 +1,126 @@
+---
+title: "Covid-19"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+    theme: lumen
+---
+
+
+```{r setup, include=FALSE}
+library(tidymodels)
+library(modeltime)
+library(timetk)   
+library(lubridate)
+library(tidyverse)
+library(flexdashboard)
+
+azn = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.csv') %>% 
+  mutate(date = as.Date(date)) %>% filter(location %in% c('Azerbaijan'))
+index_max = nrow(azn)
+
+```
+
+
+
+Azerbaijan
+=====================================  
+
+Row {data-height=130}
+-----------------------------------------------------------------------
+
+### Date
+
+```{r}
+calen <- azn$date[index_max]
+valueBox(calen, icon = "fa-calendar-alt",color = "danger")
+```
+
+### Total Cases
+
+```{r}
+tot_cases <- azn$total_cases[index_max]
+valueBox(prettyNum(tot_cases, big.mark = ','), icon = "fa-users")
+```
+
+### Total Deaths
+
+```{r}
+tot_deaths <- azn$total_deaths[index_max]
+valueBox(prettyNum(tot_deaths, big.mark = ','), icon = "fa-exclamation-triangle")
+```
+
+### New cases
+
+```{r}
+new_cases <- azn$new_cases[index_max]
+valueBox(prettyNum(new_cases, big.mark = ','), 
+         icon = "fa-diagnoses",
+         color = "warning")
+```
+
+### New Deaths
+
+```{r}
+new_deaths <- azn$new_deaths[index_max]
+valueBox(prettyNum(new_deaths, big.mark = ','), 
+         icon = "fa-exclamation-circle",
+         color = "danger")
+```
+
+
+Row {data-height=300}
+-----------------------------------------------------------------------
+
+### Time series
+
+```{r}
+df = azn[,c('date','new_cases')][-c(1:72),]
+
+df[df==0]=NA
+
+names(df) = c('date','new_cases')
+
+
+df %>% plot_time_series(date, new_cases, .interactive = TRUE)
+```
+
+
+### Split strategy last 1 week
+
+```{r}
+splits <- df %>%
+  time_series_split(assess = 7, cumulative = TRUE)
+
+splits %>%
+  tk_time_series_cv_plan() %>%
+  plot_time_series_cv_plan(date, new_cases, .interactive = TRUE)
+```
+
+
+Row {data-height=300}
+-------------------------------------
+
+### Prediction for the next 4 months
+
+```{r}
+model_spec_prophet_boost <- prophet_boost(seasonality_yearly = FALSE) %>%
+  set_engine("prophet_xgboost") 
+model_fit_prophet <- prophet_reg(seasonality_yearly = TRUE) %>%
+  set_engine("prophet") %>%
+  fit(new_cases ~ date, training(splits))
+
+model_table <- modeltime_table(
+  model_fit_prophet
+) 
+
+calibration_table <- model_table %>%
+  modeltime_calibrate(testing(splits))
+
+
+result = calibration_table %>%
+  modeltime_forecast(actual_data = df, h=120)
+
+result %>% plot_modeltime_forecast(.interactive = TRUE)
+```
