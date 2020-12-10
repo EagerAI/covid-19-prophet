@@ -2,7 +2,7 @@ on:
   push:
   schedule:
       # * is a special character in YAML so you have to quote this string
-      - cron:  '00 14 * * *'
+      - cron:  '00 10 * * *'
 
 name: R-CMD
 
@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { os: macOS-latest }
+        - { os: windows-latest }
 
     steps:
       - uses: actions/checkout@v1
