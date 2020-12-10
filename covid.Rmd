@@ -120,7 +120,7 @@ calibration_table <- model_table %>%
 
 
 result = calibration_table %>%
-  modeltime_forecast(actual_data = df, h=120)
+  modeltime_forecast(actual_data = df, h=180)
 
 result %>% plot_modeltime_forecast(.interactive = TRUE)
 ```
