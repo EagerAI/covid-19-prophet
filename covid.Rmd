@@ -172,7 +172,7 @@ valueBox(prettyNum(new_deaths, big.mark = ','),
 ```
 
 
-Row {data-height=450}
+Row {data-height=400}
 -------------------------------------
 
 ### Prediction for the next 2 months
