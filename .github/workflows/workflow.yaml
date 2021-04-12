@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          Rscript -e "install.packages(c('tidymodels','modeltime','rmarkdown','timetk','lubridate','flexdashboard','tidyverse','loo'))"
+          Rscript -e "install.packages(c('dplyr','prophet','rmarkdown','rBayesianOptimization','lubridate','flexdashboard', 'ggplot2'))"
 
           
       - name: Render Rmd files from _posts
