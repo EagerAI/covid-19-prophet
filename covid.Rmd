@@ -9,16 +9,118 @@ output:
 
 
 ```{r setup, include=FALSE}
-library(tidymodels)
-library(modeltime)
-library(timetk)   
-library(lubridate)
-library(tidyverse)
+library(dplyr)
+library(prophet)
+library(rBayesianOptimization)
+library(ggplot2)
 library(flexdashboard)
+#options(error=recover)
 
 azn = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.csv') %>% 
   mutate(date = as.Date(date)) %>% filter(location %in% c('Azerbaijan'))
 index_max = nrow(azn)
+
+df= azn %>% select(date,new_cases) %>% rename(ds=date,y=new_cases)
+
+
+max_date = max(df$ds)
+min_date = max_date - 14
+
+df_ = df %>% filter(ds < min_date)
+
+prophet_fit = function(n.changepoints, changepoint.range ,   seasonality.prior.scale, 
+                       holidays.prior.scale , changepoint.prior.scale , 
+                       mcmc.samples , interval.width , uncertainty.samples) {
+  
+  
+  m = prophet(df_,growth = "linear", 
+              yearly.seasonality = TRUE, 
+              weekly.seasonality = TRUE, daily.seasonality = TRUE, 
+              seasonality.mode = "multiplicative",
+              n.changepoints = n.changepoints, changepoint.range = changepoint.range, seasonality.prior.scale = seasonality.prior.scale, 
+              holidays.prior.scale = holidays.prior.scale, changepoint.prior.scale = changepoint.prior.scale, 
+              mcmc.samples = mcmc.samples, interval.width = interval.width, 
+              uncertainty.samples = uncertainty.samples)
+  
+  future <- make_future_dataframe(m, periods = 20)
+
+  forecast <- predict(m, future) %>% mutate(yhat=ifelse(yhat<0,
+                                                        50, 
+                                                        yhat))
+  
+  actual = df %>% filter(ds > min_date) %>% pull(y)
+  yhat = forecast %>% filter(ds > min_date, ds <= max_date) %>% pull(yhat)
+  
+  
+  score_ <- list(Score = -Metrics::mae(actual,yhat),
+                 Pred = 0)
+  
+  score_
+  
+}
+
+search_bound_prophet <- list(n.changepoints= c(0L, 150L), 
+                             changepoint.range= c(0.6, 0.9) , 
+                             seasonality.prior.scale= c(0, 2), 
+                             holidays.prior.scale= c(0, 2) , changepoint.prior.scale= c(0, 2) , 
+                             mcmc.samples=c(0,50) , interval.width=c(0,1) , uncertainty.samples=c(1000,1e4)
+)
+set.seed(123)
+search_grid_prophet <- data.frame(
+                                  n.changepoints= runif(30,0L, 150L), 
+                                  changepoint.range= runif(30, 0.6, 0.9) , 
+                                  seasonality.prior.scale= runif(30,0, 2), 
+                                  holidays.prior.scale= runif(30,0, 2) , changepoint.prior.scale= runif(30,0, 2) , 
+                                  mcmc.samples=runif(30,0,50) , interval.width=runif(30,0,1) , 
+                                  uncertainty.samples=runif(30,1000,1e4)
+)
+#head(search_grid_prophet)
+
+set.seed(123)
+bayes_prophet <- BayesianOptimization(FUN = prophet_fit, bounds = search_bound_prophet,
+                                     init_points = 10, init_grid_dt = search_grid_prophet,
+                                     n_iter = 10, acq = "ucb")
+
+
+bayes_prophet$Best_Par
+
+obj=bayes_prophet$Best_Par
+
+m = prophet(df,growth = "linear", 
+            yearly.seasonality = TRUE, 
+            weekly.seasonality = TRUE, daily.seasonality = TRUE, 
+            seasonality.mode = "multiplicative",
+            n.changepoints = obj[1], changepoint.range = obj[2], seasonality.prior.scale = obj[3], 
+            holidays.prior.scale = obj[4], changepoint.prior.scale = obj[5], 
+            mcmc.samples = obj[6], interval.width = obj[7], 
+            uncertainty.samples = obj[8])
+
+future <- make_future_dataframe(m, periods = 60)
+#tail(future)
+forecast <- predict(m, future) %>% mutate(yhat=ifelse(yhat<0,
+                                                      1, 
+                                                      yhat))
+#tail(forecast[c('ds', 'yhat', 'yhat_lower', 'yhat_upper')])
+
+
+actual = df %>% filter(ds > min_date) %>% pull(y)
+yhat = forecast %>% mutate(ds=as.Date(ds)) %>%  filter(ds > min_date, ds <= max_date) %>% pull(yhat)
+
+Metrics::mae(actual,yhat)
+
+
+
+data = forecast %>% select(ds,yhat) %>% left_join(df) %>% mutate(ds=as.Date(ds)) %>% 
+  filter(ds>='2020-08-01')
+names(data) = c('Date','Prediction','Actual')
+
+p=ggplot() + 
+  geom_line(data = data, aes(x = Date, y = Actual), colour = "darkgreen") +
+  geom_line(data = data, aes(x = Date, y = Prediction), colour = "red") +
+  scale_x_date(date_breaks = "1 month",# date_minor_breaks = "1 week",
+               date_labels = "%B %Y") +
+  xlab('Dates') +
+  ylab('Daily cases')+ggtitle("Green = Actual \nRed = Predicted")
 
 ```
 
@@ -70,57 +172,11 @@ valueBox(prettyNum(new_deaths, big.mark = ','),
 ```
 
 
-Row {data-height=300}
------------------------------------------------------------------------
-
-### Time series
-
-```{r}
-df = azn[,c('date','new_cases')][-c(1:72),]
-
-df[df==0]=NA
-
-names(df) = c('date','new_cases')
-
-
-df %>% plot_time_series(date, new_cases, .interactive = TRUE)
-```
-
-
-### Split strategy last 1 week
-
-```{r}
-splits <- df %>%
-  time_series_split(assess = 7, cumulative = TRUE)
-
-splits %>%
-  tk_time_series_cv_plan() %>%
-  plot_time_series_cv_plan(date, new_cases, .interactive = TRUE)
-```
-
-
-Row {data-height=300}
+Row {data-height=450}
 -------------------------------------
 
-### Prediction for the next 4 months
+### Prediction for the next 2 months
 
 ```{r}
-model_spec_prophet_boost <- prophet_boost(seasonality_yearly = FALSE) %>%
-  set_engine("prophet_xgboost") 
-model_fit_prophet <- prophet_reg(seasonality_yearly = TRUE) %>%
-  set_engine("prophet") %>%
-  fit(new_cases ~ date, training(splits))
-
-model_table <- modeltime_table(
-  model_fit_prophet
-) 
-
-calibration_table <- model_table %>%
-  modeltime_calibrate(testing(splits))
-
-
-result = calibration_table %>%
-  modeltime_forecast(actual_data = df, h=180)
-
-result %>% plot_modeltime_forecast(.interactive = TRUE)
+plotly::ggplotly(p)
 ```
