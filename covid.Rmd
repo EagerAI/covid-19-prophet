@@ -21,7 +21,7 @@ azn = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.c
 index_max = nrow(azn)
 
 df= azn %>% select(date,new_cases) %>% rename(ds=date,y=new_cases)
-
+df <- zoo::na.locf(df)
 
 max_date = max(df$ds)
 min_date = max_date - 14
