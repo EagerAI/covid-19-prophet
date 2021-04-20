@@ -65,7 +65,7 @@ search_bound_prophet <- list(n.changepoints= c(0L, 150L),
                              holidays.prior.scale= c(0, 2) , changepoint.prior.scale= c(0, 2) , 
                              mcmc.samples=c(0,50) , interval.width=c(0,1) , uncertainty.samples=c(1000,1e4)
 )
-set.seed(123)
+
 search_grid_prophet <- data.frame(
                                   n.changepoints= runif(30,0L, 150L), 
                                   changepoint.range= runif(30, 0.6, 0.9) , 
@@ -76,13 +76,13 @@ search_grid_prophet <- data.frame(
 )
 #head(search_grid_prophet)
 
-set.seed(123)
+
 bayes_prophet <- BayesianOptimization(FUN = prophet_fit, bounds = search_bound_prophet,
                                      init_points = 10, init_grid_dt = search_grid_prophet,
                                      n_iter = 10, acq = "ucb")
 
 
-bayes_prophet$Best_Par
+print(bayes_prophet$Best_Par)
 
 obj=bayes_prophet$Best_Par
 
