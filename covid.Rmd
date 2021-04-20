@@ -67,12 +67,12 @@ search_bound_prophet <- list(n.changepoints= c(0L, 150L),
 )
 
 search_grid_prophet <- data.frame(
-                                  n.changepoints= runif(30,0L, 150L), 
-                                  changepoint.range= runif(30, 0.6, 0.9) , 
-                                  seasonality.prior.scale= runif(30,0, 2), 
-                                  holidays.prior.scale= runif(30,0, 2) , changepoint.prior.scale= runif(30,0, 2) , 
-                                  mcmc.samples=runif(30,0,50) , interval.width=runif(30,0,1) , 
-                                  uncertainty.samples=runif(30,1000,1e4)
+                                  n.changepoints= runif(5,0L, 150L), 
+                                  changepoint.range= runif(5, 0.6, 0.9) , 
+                                  seasonality.prior.scale= runif(5,0, 2), 
+                                  holidays.prior.scale= runif(5,0, 2) , changepoint.prior.scale= runif(30,0, 2) , 
+                                  mcmc.samples=runif(5,0,50) , interval.width=runif(5,0,1) , 
+                                  uncertainty.samples=runif(5,1000,1e4)
 )
 #head(search_grid_prophet)
 
