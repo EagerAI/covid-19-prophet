@@ -70,7 +70,7 @@ search_grid_prophet <- data.frame(
                                   n.changepoints= runif(5,0L, 150L), 
                                   changepoint.range= runif(5, 0.6, 0.9) , 
                                   seasonality.prior.scale= runif(5,0, 2), 
-                                  holidays.prior.scale= runif(5,0, 2) , changepoint.prior.scale= runif(30,0, 2) , 
+                                  holidays.prior.scale= runif(5,0, 2) , changepoint.prior.scale= runif(5,0, 2) , 
                                   mcmc.samples=runif(5,0,50) , interval.width=runif(5,0,1) , 
                                   uncertainty.samples=runif(5,1000,1e4)
 )
@@ -78,8 +78,8 @@ search_grid_prophet <- data.frame(
 
 
 bayes_prophet <- BayesianOptimization(FUN = prophet_fit, bounds = search_bound_prophet,
-                                     init_points = 10, init_grid_dt = search_grid_prophet,
-                                     n_iter = 10, acq = "ucb")
+                                     init_points = 2, init_grid_dt = search_grid_prophet,
+                                     n_iter = 7, acq = "ucb")
 
 
 print(bayes_prophet$Best_Par)
@@ -110,8 +110,7 @@ Metrics::mae(actual,yhat)
 
 
 
-data = forecast %>% select(ds,yhat) %>% left_join(df) %>% mutate(ds=as.Date(ds)) %>% 
-  filter(ds>='2020-08-01')
+data = forecast %>% select(ds,yhat) %>% left_join(df) %>% mutate(ds=as.Date(ds)) #%>%filter(ds>='2020-08-01')
 names(data) = c('Date','Prediction','Actual')
 
 p=ggplot() + 
