@@ -110,7 +110,8 @@ Metrics::mae(actual,yhat)
 
 
 
-data = forecast %>% select(ds,yhat) %>% left_join(df) %>% mutate(ds=as.Date(ds)) #%>%filter(ds>='2020-08-01')
+data = forecast %>% select(ds,yhat) %>% left_join(df) %>% mutate(ds=as.Date(ds),
+                                                                 yhat=as.integer(yhat)) #%>%filter(ds>='2020-08-01')
 names(data) = c('Date','Prediction','Actual')
 
 p=ggplot() + 
