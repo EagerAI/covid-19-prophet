@@ -79,7 +79,7 @@ search_grid_prophet <- data.frame(
 
 bayes_prophet <- BayesianOptimization(FUN = prophet_fit, bounds = search_bound_prophet,
                                      init_points = 2, init_grid_dt = search_grid_prophet,
-                                     n_iter = 7, acq = "ucb")
+                                     n_iter = 12, acq = "ucb")
 
 
 print(bayes_prophet$Best_Par)
