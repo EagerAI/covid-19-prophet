@@ -1,7 +1,8 @@
 # Covid-19-prophet
 
 
-We use ```modeltime``` package to predict the new Covid-19 cases for the next months.
+We use ```prophet``` package to predict the Covid-19 cases for the next 2 months.
+Bayesian Optimization is used to find the best parameters.
 
 
 
