@@ -21,10 +21,12 @@ azn = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.c
 index_max = nrow(azn)
 
 df= azn %>% select(date,new_cases) %>% rename(ds=date,y=new_cases)
-df <- zoo::na.locf(df)
+#df <- zoo::na.locf(df)
+#df$y <- df$y + 1
+df$y[df$y==0]=NA
 
 max_date = max(df$ds)
-min_date = max_date - 14
+min_date = max_date - 4
 
 df_ = df %>% filter(ds < min_date)
 
@@ -36,7 +38,7 @@ prophet_fit = function(n.changepoints, changepoint.range ,   seasonality.prior.s
   m = prophet(df_,growth = "linear", 
               yearly.seasonality = TRUE, 
               weekly.seasonality = TRUE, daily.seasonality = TRUE, 
-              seasonality.mode = "multiplicative",
+              seasonality.mode = "additive",
               n.changepoints = n.changepoints, changepoint.range = changepoint.range, seasonality.prior.scale = seasonality.prior.scale, 
               holidays.prior.scale = holidays.prior.scale, changepoint.prior.scale = changepoint.prior.scale, 
               mcmc.samples = mcmc.samples, interval.width = interval.width, 
@@ -89,7 +91,7 @@ obj=bayes_prophet$Best_Par
 m = prophet(df,growth = "linear", 
             yearly.seasonality = TRUE, 
             weekly.seasonality = TRUE, daily.seasonality = TRUE, 
-            seasonality.mode = "multiplicative",
+            seasonality.mode = "additive",
             n.changepoints = obj[1], changepoint.range = obj[2], seasonality.prior.scale = obj[3], 
             holidays.prior.scale = obj[4], changepoint.prior.scale = obj[5], 
             mcmc.samples = obj[6], interval.width = obj[7], 
