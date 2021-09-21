@@ -23,7 +23,7 @@ index_max = nrow(azn)
 df= azn %>% select(date,new_cases) %>% rename(ds=date,y=new_cases)
 #df <- zoo::na.locf(df)
 #df$y <- df$y + 1
-df$y[df$y==0]=NA
+#df$y[df$y==0]=NA
 
 max_date = max(df$ds)
 min_date = max_date - 4
